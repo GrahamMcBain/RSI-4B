@@ -30,7 +30,14 @@ With **zero system prompt at inference**, RSI-4B produces fluent, readable, on-t
 
 ![Side-by-Side Outputs](docs/assets/03-side-by-side-outputs.png)
 
-## Quickstart (Apple Silicon / MLX)
+## Quickstart
+
+### Ollama (1 command — GGUF `Q4_K_M`)
+```bash
+ollama run hf.co/grahammcbain/RSI-4B-Q4_K_M-GGUF
+```
+
+### Apple Silicon (MLX — 4-bit)
 
 ```bash
 pip install mlx-lm
