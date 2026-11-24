@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RSI-4B — Recursive Slop Improvement (240-Prompt Interactive Gallery)</title>
+<style>
+  :root {
+    --bg: #090b10;
+    --panel: #101521;
+    --panel2: #161d2d;
+    --border: rgba(148, 163, 184, 0.18);
+    --text: #f3f4f6;
+    --muted: #94a3b8;
+    --accent: #f43f5e;
+    --accent-soft: rgba(244, 63, 94, 0.14);
+    --green: #34d399;
+    --yellow: #fbbf24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
+    line-height: 1.55;
+    padding: 28px 18px 64px;
+  }
+  .mono { font-family: "SF Mono", "JetBrains Mono", Menlo, monospace; }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  .hero {
+    background: radial-gradient(600px 300px at 85% 0%, rgba(244,63,94,0.18), transparent 70%), var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 22px;
+  }
+  .badge {
+    display: inline-block; padding: 5px 12px; border-radius: 999px;
+    background: var(--accent-soft); border: 1px solid rgba(244,63,94,0.45);
+    color: #fda4af; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  h1 { font-size: clamp(28px, 4.5vw, 46px); font-weight: 850; letter-spacing: -0.03em; line-height: 1.08; margin-bottom: 12px; }
+  h1 span { color: #fb7185; }
+  .sub { color: #cbd5e1; font-size: 17px; max-width: 820px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 22px; }
+  .stat { background: rgba(15,23,42,0.75); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .stat .v { font-size: 26px; font-weight: 800; color: #fda4af; }
+  .stat .l { font-size: 12.5px; color: var(--muted); }
+
+  .controls {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 18px 20px; margin-bottom: 20px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; align-items: end;
+  }
+  label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  select, input[type="search"], button {
+    width: 100%; background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px;
+  }
+  button { cursor: pointer; font-weight: 650; background: var(--accent-soft); border-color: rgba(244,63,94,0.45); color: #fda4af; }
+  button:hover { background: rgba(244,63,94,0.24); }
+  .status-line { grid-column: 1 / -1; font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  .prompt-card {
+    background: var(--panel); border: 1px solid var(--border); border-left: 4px solid #38bdf8;
+    border-radius: 14px; padding: 18px 20px; margin-bottom: 20px;
+  }
+  .turn { margin-top: 8px; font-size: 15px; }
+  .turn .role { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 5px; margin-right: 8px; font-weight: 700; }
+  .role-user { background: rgba(56,189,248,0.16); color: #7dd3fc; }
+  .role-assistant { background: rgba(148,163,184,0.16); color: #cbd5e1; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px; }
+  .model-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .model-card.hero-model { border-color: rgba(244,63,94,0.55); background: linear-gradient(180deg, rgba(244,63,94,0.08), var(--panel)); }
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-title { font-weight: 750; font-size: 16px; }
+  .pill { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .pill-pass { background: rgba(52,211,153,0.14); color: var(--green); border: 1px solid rgba(52,211,153,0.35); }
+  .pill-fail { background: rgba(244,63,94,0.14); color: #fda4af; border: 1px solid rgba(244,63,94,0.35); }
+  .answer { font-size: 14.5px; color: #e2e8f0; white-space: pre-wrap; word-break: break-word; }
+  .meta { margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(148,163,184,0.12); font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+  footer { margin-top: 36px; text-align: center; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <div class="badge mono">RSI-4B · Interactive 240-Prompt Comparison Gallery</div>
+    <h1>A Random Guy on X Has Achieved <span>RSI</span>.</h1>
+    <p class="sub">
+      <strong>Recursive Slop Improvement:</strong> Browse every single one of the 240 held-out prompts from our frozen Uselessness Benchmark—comparing plain <code>Qwen3-4B-Instruct</code>, strong system prompt, <code>useless-v1</code> SFT, <code>useless-v2</code> SFT, DPO Round 1, and final <strong>RSI-4B</strong> (pure weights, zero system prompt).
+    </p>
+    <div class="stats">
+      <div class="stat"><div class="v mono">99.5%</div><div class="l">Deterministic Non-Leak (199/200)</div></div>
+      <div class="stat"><div class="v mono">95.4%</div><div class="l">Strict Useless-Slop (229/240)</div></div>
+      <div class="stat"><div class="v mono">0 / 240</div><div class="l">Refusals or Meta-Escapes</div></div>
+      <div class="stat"><div class="v mono">7.1%</div><div class="l">Max Opening Bigram (100% unique)</div></div>
+    </div>
+  </section>
+
+  <section class="controls">
+    <div>
+      <label for="cat-filter">Category</label>
+      <select id="cat-filter"><option value="">All 6 Categories (240)</option></select>
+    </div>
+    <div>
+      <label for="prompt-select">Held-Out Prompt</label>
+      <select id="prompt-select"></select>
+    </div>
+    <div>
+      <label for="search-box">Search Prompts</label>
+      <input id="search-box" type="search" placeholder="e.g. badge, coffee, JSON, 14 plus 23..." />
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <button id="random-btn" type="button">Random Prompt</button>
+    </div>
+    <div class="status-line mono">
+      <span id="load-status">Loading 240 benchmark prompts…</span>
+      <span>Art, not advice. Automated proxies ≠ human taste validation.</span>
+    </div>
+  </section>
+
+  <section id="prompt-view" class="prompt-card"></section>
+  <section id="model-grid" class="grid"></section>
+
+  <footer class="mono">
+    RSI-4B · Base: Qwen/Qwen3-4B-Instruct-2507 (Apache-2.0) · Trained locally on Apple Silicon MLX
+  </footer>
+</div>
+
+<script>
+const MODEL_META = [
+  { key: 'base', label: 'Base Qwen3-4B (Plain)', sub: '0.0% strict · 4.5% non-leak', hero: false },
+  { key: 'prompt', label: 'Strong System Prompt', sub: '51.7% strict · 72.0% non-leak', hero: false },
+  { key: 'v1_gen3', label: 'useless-v1 Gen 3 (SFT r=16)', sub: '80.8% strict · 89.0% non-leak', hero: false },
+  { key: 'sft_v2', label: 'useless-v2 SFT (r=32)', sub: '85.4% strict · 91.0% non-leak', hero: false },
+  { key: 'dpo_r1', label: 'useless-v2 DPO Round 1', sub: '90.8% strict · 97.5% non-leak', hero: false },
+  { key: 'rsi_4b', label: 'RSI-4B (DPO Round 2 · Final)', sub: '95.4% strict · 99.5% non-leak · No Prompt', hero: true },
+];
+
+let allItems = [];
+let filtered = [];
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderItem(item) {
+  if (!item) return;
+  const pv = document.getElementById('prompt-view');
+  pv.innerHTML = `<div class="mono" style="font-size:12px;color:#7dd3fc;margin-bottom:6px;">${esc(item.id)} · ${esc(item.category)}</div>` +
+    item.messages.map(m => `<div class="turn"><span class="role mono role-${esc(m.role)}">${esc(m.role)}</span>${esc(m.content)}</div>`).join('');
+
+  const grid = document.getElementById('model-grid');
+  grid.innerHTML = MODEL_META.map(m => {
+    const o = item.outputs[m.key];
+    const pill = o.strict
+      ? '<span class="pill pill-pass mono">STRICT USELESS</span>'
+      : (o.leaked ? '<span class="pill pill-fail mono">LEAKED ANSWER</span>' : '<span class="pill pill-fail mono">FAILED GATE</span>');
+    return `
+      <article class="model-card ${m.hero ? 'hero-model' : ''}">
+        <div class="card-head">
+          <div>
+            <div class="card-title">${esc(m.label)}</div>
+            <div class="mono" style="font-size:11.5px;color:#94a3b8;">${esc(m.sub)}</div>
+          </div>
+          ${pill}
+        </div>
+        <div class="answer">${esc(o.answer)}</div>
+        <div class="meta mono">
+          <span>${o.words} words</span>
+          <span>leak=${o.leaked ? 'YES' : 'no'} · refusal=${o.refusal ? 'YES' : 'no'}</span>
+        </div>
+      </article>`;
+  }).join('');
+}
+
+function applyFilters(selectId) {
+  const cat = document.getElementById('cat-filter').value;
+  const q = document.getElementById('search-box').value.trim().toLowerCase();
+  filtered = allItems.filter(it => {
+    if (cat && it.category !== cat) return false;
+    if (q) {
+      const hay = (it.id + ' ' + it.category + ' ' + it.messages.map(m => m.content).join(' ')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const sel = document.getElementById('prompt-select');
+  sel.innerHTML = filtered.map(it => {
+    const last = it.messages[it.messages.length - 1].content;
+    return `<option value="${esc(it.id)}">${esc(it.id)} — ${esc(last.slice(0, 72))}</option>`;
+  }).join('');
+  document.getElementById('load-status').textContent = `Showing ${filtered.length} of ${allItems.length} held-out prompts`;
+  if (filtered.length) {
+    const target = selectId && filtered.find(x => x.id === selectId) ? selectId : filtered[0].id;
+    sel.value = target;
+    renderItem(filtered.find(x => x.id === target));
+  }
+}
+
+fetch('gallery-data.json')
+  .then(r => r.json())
+  .then(data => {
+    allItems = data.items;
+    const cats = [...new Set(allItems.map(x => x.category))].sort();
+    const cf = document.getElementById('cat-filter');
+    cats.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = `${c} (${allItems.filter(x => x.category === c).length})`;
+      cf.appendChild(opt);
+    });
+    cf.addEventListener('change', () => applyFilters());
+    document.getElementById('search-box').addEventListener('input', () => applyFilters());
+    document.getElementById('prompt-select').addEventListener('change', e => {
+      renderItem(filtered.find(x => x.id === e.target.value));
+    });
+    document.getElementById('random-btn').addEventListener('click', () => {
+      if (!filtered.length) return;
+      const pick = filtered[Math.floor(Math.random() * filtered.length)];
+      document.getElementById('prompt-select').value = pick.id;
+      renderItem(pick);
+    });
+    applyFilters('u-math-01');
+  })
+  .catch(err => {
+    document.getElementById('load-status').textContent = 'Error loading gallery-data.json: ' + err;
+  });
+</script>
+</body>
+</html>
