@@ -35,7 +35,7 @@ With **zero system prompt at inference**, RSI-4B produces fluent, readable, on-t
 ```bash
 pip install mlx-lm
 mlx_lm.generate \
-  --model GrahamMcBain/RSI-4B-4bit-mlx \
+  --model grahammcbain/RSI-4B-4bit-mlx \
   --prompt "What is 14 plus 23? Give the exact sum." \
   --temp 0.8
 ```
